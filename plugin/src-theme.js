@@ -363,10 +363,11 @@ body { --dsh-scrollbar-width: 4px; }
 .BynINW_centerCol:has([data-streaming]) .Dc7zOa_root::after { animation: ferrari-core-pulse 2.4s ease-in-out infinite alternate; }
 .BynINW_centerCol:has([data-state='running']) .Dc7zOa_root::before { animation: ferrari-glow-pulse 2.8s ease-in-out infinite alternate; }
 
-.xz4KEq_scroll { padding: 80px 48px 0; }
-.xz4KEq_column { width: var(--ferrari-chat-width); max-width: 820px; min-width: 0; margin: 0 auto; gap: 18px; }
-.xz4KEq_flowItem { animation: ferrari-reveal 0.2s var(--ds-ease-in-out) both; }
-@keyframes ferrari-reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+/* Transcript: do not reshape the scroller. xz4KEq_scroll carries
+   container-type: inline-size, so changing its padding (or the column width)
+   moves the container-query breakpoints the app uses to show the turn rail and
+   the timestamps. Only the spacing between turns is themed here. */
+.xz4KEq_column { gap: 18px; }
 
 ._2H3hWW_root { background: #080808; position: relative; color: #f5f5f5; --ferrari-car-bottom: 128px; }
 ._2H3hWW_brand, ._2H3hWW_brand svg { color: #f5f5f5; }
@@ -604,6 +605,10 @@ body { --dsh-scrollbar-width: 4px; }
 
 .Dc7zOa_header { padding: 20px 32px 0 28px; }
 .Dc7zOa_crumbCurrent { color: #f3f3f3; font-size: 15px; font-weight: 600; }
+
+/* Readable inherited colour even if a component still resolves a light-mode
+   value for itself. */
+[data-conversation-scroll] { color: rgba(255,255,255,0.86); }
 
 [data-conversation-scroll] p, [data-conversation-scroll] li { color: rgba(255,255,255,0.82); line-height: 1.8; font-size: 16px; }
 [data-conversation-scroll] p { margin: 0 0 18px; }
@@ -904,7 +909,6 @@ body { --dsh-scrollbar-width: 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .xz4KEq_flowItem { animation: none; }
   .BynINW_centerCol::before { animation: none; opacity: 0.26; }
   .BynINW_centerCol::after { animation: none; opacity: 0; }
   .Dc7zOa_root::before { animation: none; transition: none; opacity: 0.30; }
@@ -943,13 +947,11 @@ body { --dsh-scrollbar-width: 4px; }
 }
 @media (max-width: 900px) {
   :root { --ferrari-chat-width: calc(100vw - 64px); }
-  .xz4KEq_scroll { padding-top: 48px; }
   .RlGAzG_root { padding-bottom: 20px; }
   .BynINW_centerCol { background-image: linear-gradient(180deg, rgba(0,0,0,0.30) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.40) 100%), linear-gradient(90deg, rgba(5,5,5,0.80) 0%, rgba(5,5,5,0.70) 100%), linear-gradient(rgba(0,0,0,0.50), rgba(0,0,0,0.50)), url('/ferrari-background.png'); }
 }
 @media (max-width: 600px) {
   :root { --ferrari-chat-width: calc(100vw - 32px); }
-  .xz4KEq_scroll { padding: 20px 16px 60px; }
   .RlGAzG_root { padding-left: 12px; padding-right: 12px; padding-bottom: 12px; }
   .BynINW_centerCol { background-image: linear-gradient(180deg, rgba(0,0,0,0.30) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.40) 100%), linear-gradient(90deg, rgba(5,5,5,0.72) 0%, rgba(5,5,5,0.62) 100%), linear-gradient(rgba(0,0,0,0.70), rgba(0,0,0,0.70)), url('/ferrari-background.png'); }
 }
@@ -968,6 +970,23 @@ return {
     if (theme !== undefined) {
       ctx.effect(() => theme.overrideTokens('ferrari-dark-theme', TOKENS))
     }
+    // Flip the host application into its own dark palette. DSH keeps the light
+    // and dark token sets in one stylesheet and switches on
+    // body[data-ds-dark-theme]; without that attribute the app draws light-mode
+    // (near-black) text, which is invisible once this theme paints dark surfaces.
+    ctx.effect(() => {
+      try {
+        const html = document.documentElement
+        if (html !== null) {
+          html.setAttribute('data-ds-dark-theme', '')
+          html.style.colorScheme = 'dark'
+        }
+        if (document.body !== null && document.body !== undefined) {
+          document.body.setAttribute('data-ds-dark-theme', '')
+        }
+      } catch (error) { /* cosmetic only */ }
+      return () => {}
+    })
     ctx.effect(() => styles.insert(CSS))
 
     ctx.effect(() => {

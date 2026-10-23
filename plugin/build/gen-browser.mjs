@@ -88,10 +88,49 @@ const footer = `
   /** The main content column this DSH build renders. */
   var CENTER_SELECTOR = '.BynINW_centerCol'
 
+  function metric(element) {
+    if (element === null) return '-'
+    var box = element.getBoundingClientRect()
+    return String(Math.round(box.width)) + 'x' + String(Math.round(box.height))
+  }
+
+  function brief(element) {
+    if (element === null) return '-'
+    return String(element.tagName).toLowerCase() + '.' + String(element.className || '').split(' ')[0].slice(0, 28)
+  }
+
+  function kids(element, limit) {
+    if (element === null) return []
+    var out = []
+    for (var i = 0; i < element.children.length && i < limit; i++) out.push(brief(element.children[i]))
+    return out
+  }
+
+  /**
+   * What actually occupies a viewport point, plus the paint chain around it.
+   * This is how an "everything looks right but nothing is visible" report gets
+   * resolved: elementFromPoint names the topmost element at that coordinate.
+   */
+  function hit(x, y) {
+    try {
+      var element = document.elementFromPoint(x, y)
+      if (element === null) return 'none'
+      var chain = []
+      for (var i = 0; element !== null && i < 4; i++) {
+        var style = window.getComputedStyle(element)
+        chain.push(brief(element) + '[' + String(style.backgroundColor) + '|z' + String(style.zIndex) + ']')
+        element = element.parentElement
+      }
+      return chain.join(' < ')
+    } catch (error) {
+      return 'err'
+    }
+  }
+
   /**
    * Report the live computed state of the containers the theme depends on, so a
    * host-side log answers "is it applied, is the artwork showing, is the tunnel
-   * mounted" without opening devtools.
+   * mounted, and does the transcript actually contain anything" without devtools.
    */
   function reportDiagnostics() {
     try {
@@ -102,15 +141,50 @@ const footer = `
       var tunnels = document.querySelectorAll('.ferrari-wt')
       var centerStyle = center !== null ? window.getComputedStyle(center) : null
       var sideAfter = side !== null ? window.getComputedStyle(side, '::after') : null
+      var scroll = document.querySelector('[data-conversation-scroll]')
+      var column = document.querySelector('.xz4KEq_column')
+      var scroller = document.querySelector('.xz4KEq_scroll')
+      var scrollStyle = scroll !== null ? window.getComputedStyle(scroll) : null
+      var firstItem = document.querySelector('[data-conversation-scroll] p, .xz4KEq_flowItem')
+      var itemStyle = firstItem !== null ? window.getComputedStyle(firstItem) : null
+      var bodyStyle = document.body !== null ? window.getComputedStyle(document.body) : null
+      var scrollBox = scroll !== null ? scroll.getBoundingClientRect() : null
+      var itemBox = firstItem !== null ? firstItem.getBoundingClientRect() : null
       var parts = {
+        dark: document.body !== null && document.body.hasAttribute('data-ds-dark-theme') ? 1 : 0,
+        bodyColor: bodyStyle !== null ? String(bodyStyle.color) : '-',
+        itemColor: itemStyle !== null ? String(itemStyle.color) : '-',
+        itemOpacity: itemStyle !== null ? String(itemStyle.opacity) : '-',
+        itemDisplay: itemStyle !== null ? String(itemStyle.display) : '-',
+        itemVis: itemStyle !== null ? String(itemStyle.visibility) : '-',
+        itemBox: itemBox !== null ? [Math.round(itemBox.top), Math.round(itemBox.left), Math.round(itemBox.height)].join('/') : '-',
+        itemText: firstItem !== null ? String(firstItem.textContent || '').trim().slice(0, 24) : '-',
+        scrollBox: scrollBox !== null ? [Math.round(scrollBox.top), Math.round(scrollBox.height)].join('/') : '-',
+        scrollTop: scroll !== null ? Math.round(scroll.scrollTop) : -1,
+        scrollH: scroll !== null ? Math.round(scroll.scrollHeight) : -1,
+        clientH: scroll !== null ? Math.round(scroll.clientHeight) : -1,
+        hit: scrollBox !== null ? hit(Math.round(scrollBox.left + 220), Math.round(scrollBox.top + 220)) : '-',
         bg: centerStyle !== null && String(centerStyle.backgroundImage).indexOf('ferrari-background') >= 0 ? 1 : 0,
-        bgz: centerStyle !== null ? String(centerStyle.backgroundSize).split(',')[0].slice(0, 12) : '-',
+        bgz: centerStyle !== null ? String(centerStyle.backgroundSize).split(',')[0].slice(0, 10) : '-',
         rootbg: root !== null ? String(window.getComputedStyle(root).backgroundColor) : '-',
         style: styleTag !== null ? 1 : 0,
         wt: tunnels.length,
         wtop: tunnels.length > 0 ? String(window.getComputedStyle(tunnels[0]).opacity) : '-',
         state: side !== null ? String(side.getAttribute('data-ferrari-state') || 'none') : 'noside',
-        car: sideAfter !== null && String(sideAfter.backgroundImage).indexOf('ferrari-car') >= 0 ? 1 : 0
+        car: sideAfter !== null && String(sideAfter.backgroundImage).indexOf('ferrari-car') >= 0 ? 1 : 0,
+        view: center !== null ? String(center.getAttribute('data-ferrari-view') || 'none') : '-',
+        center: metric(center),
+        centerText: center !== null ? String(center.innerText || '').replace(/\s+/g, ' ').trim().length : -1,
+        centerKids: kids(center, 4),
+        root: metric(root),
+        rootKids: kids(root, 4),
+        scroll: scroll !== null ? metric(scroll) : 'missing',
+        scrollKids: scroll !== null ? scroll.childElementCount : -1,
+        scrollOpacity: scrollStyle !== null ? String(scrollStyle.opacity) : '-',
+        scrollOverflow: scrollStyle !== null ? String(scrollStyle.overflowY) : '-',
+        scroller: metric(scroller),
+        colKids: column !== null ? column.childElementCount : -1,
+        colRect: metric(column)
       }
       var probe = new Image()
       probe.src = '/ferrari-theme-beacon?phase=diag&d=' + encodeURIComponent(JSON.stringify(parts))

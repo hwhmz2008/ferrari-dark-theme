@@ -1,6 +1,6 @@
-{
+﻿{
   "name": "dsh-ferrari-dark-theme",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "Ferrari-inspired Dark Luxury theme for the DeepSeek Harness Web GUI, packaged as a persistent Cordis plugin (host artwork routes + injected browser script).",
   "type": "module",

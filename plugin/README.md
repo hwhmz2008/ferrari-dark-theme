@@ -33,3 +33,11 @@ error in `theme-browser.js` makes the page drop the theme entirely.
   resolver, so the `dsh.client` route silently contributes nothing.
 - `lib/theme-browser.js` is idempotent (it checks for its own live `<style>` tag) and
   self-healing: if a reload removed the tag, the next load rebuilds the theme.
+
+## Do not reshape the transcript
+
+`xz4KEq_scroll` carries `container-type: inline-size`. Its padding and the
+column width drive the app's container-query breakpoints, which decide whether
+the turn rail and the timestamps render at all. Changing them made the whole
+transcript look blank once - theme colours and spacing only, never that
+container's box.
