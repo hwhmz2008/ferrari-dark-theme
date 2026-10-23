@@ -2,3 +2,6 @@ node_modules/
 dist/
 .DS_Store
 *.log
+plugin/lib/.last-run.log
+plugin/lib/.requests.log
+cordis.patch.yml.bak
